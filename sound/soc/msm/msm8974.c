@@ -3225,6 +3225,8 @@ static __devinit int msm8974_asoc_machine_probe(struct platform_device *pdev)
 	int sec_auxpcm_use_gpio = 1;
 #endif
 	const char *prop_name_ult_lo_gpio = "qcom,ext-ult-lo-amp-gpio";
+	const char *mbhc_audio_jack_type = NULL;
+	size_t n = strlen("4-pole-jack");
 	struct resource	*pri_muxsel;
 	struct resource	*sec_muxsel;
 
