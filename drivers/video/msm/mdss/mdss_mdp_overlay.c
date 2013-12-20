@@ -327,7 +327,7 @@ static int __mdss_mdp_overlay_setup_scaling(struct mdss_mdp_pipe *pipe)
 	rc = mdss_mdp_calc_phase_step(src, pipe->dst.w, &pipe->phase_step_x);
     if (rc == -EOVERFLOW) { 
 	/* overflow on horizontal direction is acceptable */ 
-		return 0; 
+		rc = 0; 
 	} else if (rc) { 
 		pr_err("Horizontal scaling calculation failed=%d! %d->%d\n",
 				rc, src, pipe->dst.w);
@@ -338,14 +338,13 @@ static int __mdss_mdp_overlay_setup_scaling(struct mdss_mdp_pipe *pipe)
 	rc = mdss_mdp_calc_phase_step(src, pipe->dst.h, &pipe->phase_step_y);
 	if ((rc == -EOVERFLOW) && (pipe->type == MDSS_MDP_PIPE_TYPE_VIG)) { 
 	/* overflow on Qseed2 scaler is acceptable */ 
-		return 0; 
+		rc = 0;
 	} else if (rc) { 
 		pr_err("Vertical scaling calculation failed=%d! %d->%d\n",
 				rc, src, pipe->dst.h);
 		return rc;
 	}
-
-	return 0;
+	return rc;
 }
 
 static int mdss_mdp_overlay_pipe_setup(struct msm_fb_data_type *mfd,
