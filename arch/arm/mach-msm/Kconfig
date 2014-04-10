@@ -3160,4 +3160,11 @@ config HAS_MACH_MEMUTILS
 	help
 	Faster memcpy performance for Krait
 
+config AOSP
+	bool "Build the kernel for AOSP instead of Stock"
+	default n
+	help
+	 Fixes functions on AOSP or CM. Kernels for stock LG rom's 
+         are functional if this is not enabled.
+
 endif
