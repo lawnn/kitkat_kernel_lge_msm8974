@@ -357,9 +357,9 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 OPTIMIZATION_FLAGS = -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 \
                      -ffast-math -fsingle-precision-constant \
                      -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr \
-                     -mvectorize-with-neon-quad
+                     -mvectorize-with-neon-quad -funroll-loops -munaligned-access
 CFLAGS_MODULE   = $(OPTIMIZATION_FLAGS) -DMODULE -fno-pic
-AFLAGS_MODULE   = $(OPTIMIZATION_FLAGS)
+AFLAGS_MODULE   = $(OPTIMIZATION_FLAGS) -DMODULE
 LDFLAGS_MODULE  =
 CFLAGS_KERNEL   = $(OPTIMIZATION_FLAGS) -marm
 AFLAGS_KERNEL   = $(OPTIMIZATION_FLAGS)
@@ -382,6 +382,7 @@ KBUILD_CFLAGS   := -w -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-maybe-uninitialized \
 		   -Wno-sizeof-pointer-memaccess \
 		   -fno-delete-null-pointer-checks \
+                   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
 		   $(OPTIMIZATION_FLAGS)
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
