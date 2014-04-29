@@ -878,14 +878,15 @@ int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 
 	/* Copy the address and add cmsg data. */
 	if (family == AF_INET) {
-		if (msg->msg_name) {
-			struct sockaddr_in *sin = (struct sockaddr_in *)msg->msg_name;
-			sin->sin_family = AF_INET;
-			sin->sin_port = 0 /* skb->h.uh->source */;
-			sin->sin_addr.s_addr = ip_hdr(skb)->saddr;
-			memset(sin->sin_zero, 0, sizeof(sin->sin_zero));
-			*addr_len = sizeof(*sin);
-		}
+		sin = (struct sockaddr_in *) msg->msg_name;
+        if (sin) {
+		sin->sin_family = AF_INET;
+		sin->sin_port = 0 /* skb->h.uh->source */;
+		sin->sin_addr.s_addr = ip_hdr(skb)->saddr;
+		memset(sin->sin_zero, 0, sizeof(sin->sin_zero));
+        *addr_len = sizeof(*sin);
+        }
+
 		if (isk->cmsg_flags)
 			ip_cmsg_recv(msg, skb);
 
@@ -898,7 +899,7 @@ int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		sin6->sin6_family = AF_INET6;
 		sin6->sin6_port = 0;
 		sin6->sin6_addr = ip6->saddr;
-		sin6->sin6_scope_id = 0;
+        sin6->sin6_scope_id = 0;
 
 		if (np->sndflow)
 			sin6->sin6_flowinfo =
@@ -907,7 +908,7 @@ int ping_recvmsg(struct kiocb *iocb, struct sock *sk, struct msghdr *msg,
 		if (__ipv6_addr_needs_scope_id(
 		    ipv6_addr_type(&sin6->sin6_addr)))
 			sin6->sin6_scope_id = IP6CB(skb)->iif;
-			*addr_len = sizeof(*sin6);
+        *addr_len = sizeof(*sin6);
         }
 
 		if (inet6_sk(sk)->rxopt.all)
