@@ -361,7 +361,7 @@ OPTIMIZATION_FLAGS = -mcpu=cortex-a15 -mtune=cortex-a15 -march=armv7-a -mfpu=neo
 CFLAGS_MODULE   = $(OPTIMIZATION_FLAGS) -DMODULE -fno-pic
 AFLAGS_MODULE   = $(OPTIMIZATION_FLAGS)
 LDFLAGS_MODULE  =
-CFLAGS_KERNEL   = $(OPTIMIZATION_FLAGS)
+CFLAGS_KERNEL   = $(OPTIMIZATION_FLAGS) -marm
 AFLAGS_KERNEL   = $(OPTIMIZATION_FLAGS)
 CFLAGS_GCOV     = -fprofile-arcs -ftest-coverage
 
@@ -375,7 +375,6 @@ LINUXINCLUDE    := -I$(srctree)/arch/$(hdr-arch)/include \
 
 KBUILD_CPPFLAGS := -D__KERNEL__
 
-<<<<<<< HEAD
 KBUILD_CFLAGS   := -w -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -fno-strict-aliasing -fno-common \
 		   -Werror-implicit-function-declaration \
