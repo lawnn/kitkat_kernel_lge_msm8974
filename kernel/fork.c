@@ -1098,8 +1098,10 @@ static void rt_mutex_init_task(struct task_struct *p)
 {
 	raw_spin_lock_init(&p->pi_lock);
 #ifdef CONFIG_RT_MUTEXES
-	plist_head_init(&p->pi_waiters);
+	p->pi_waiters = RB_ROOT;
+	p->pi_waiters_leftmost = NULL;
 	p->pi_blocked_on = NULL;
+	p->pi_top_task = NULL;
 #endif
 }
 
@@ -1226,7 +1228,7 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 	p->utime = p->stime = p->gtime = 0;
 	p->utimescaled = p->stimescaled = 0;
 #ifndef CONFIG_VIRT_CPU_ACCOUNTING
-	p->prev_utime = p->prev_stime = 0;
+	p->prev_cputime.utime = p->prev_cputime.stime = 0;
 #endif
 #if defined(SPLIT_RSS_COUNTING)
 	memset(&p->rss_stat, 0, sizeof(p->rss_stat));
@@ -1295,7 +1297,9 @@ static struct task_struct *copy_process(unsigned long clone_flags,
 #endif
 
 	/* Perform scheduler related setup. Assign this task to a CPU. */
-	sched_fork(p);
+	retval = sched_fork(p);
+	if (retval)
+		goto bad_fork_cleanup_policy;
 
 	retval = perf_event_init_task(p);
 	if (retval)

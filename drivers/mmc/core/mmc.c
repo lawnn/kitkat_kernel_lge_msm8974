@@ -74,6 +74,9 @@ static const struct mmc_fixup mmc_fixups[] = {
 	MMC_FIXUP("H8G2d", CID_MANFID_HYNIX, CID_OEMID_ANY, add_quirk_mmc,
 		  MMC_QUIRK_CACHE_DISABLE),
 
+	MMC_FIXUP("MMC16G", CID_MANFID_KINGSTON, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_CACHE_DISABLE),
+
 	END_FIXUP
 };
 
@@ -1624,6 +1627,11 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		} else {
 			card->ext_csd.cache_ctrl = 1;
 		}
+	}
+	if (card->quirks & MMC_QUIRK_CACHE_DISABLE) {
+		pr_warn("%s: This is Hynix card, cache disabled!\n",
+				mmc_hostname(card->host));
+		card->ext_csd.cache_ctrl = 0;
 	}
 
 	if ((host->caps2 & MMC_CAP2_PACKED_WR &&

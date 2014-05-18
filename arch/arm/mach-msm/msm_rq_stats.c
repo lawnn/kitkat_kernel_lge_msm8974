@@ -30,7 +30,6 @@
 #include <linux/kernel_stat.h>
 #include <linux/tick.h>
 #include <asm/smp_plat.h>
-#include "acpuclock.h"
 #include <linux/suspend.h>
 
 #define MAX_LONG_SIZE 24
@@ -74,8 +73,7 @@ static inline u64 get_cpu_iowait_time(unsigned int cpu,
 
 static int update_average_load(unsigned int freq, unsigned int cpu)
 {
-
-	struct cpu_load_data *pcpu = &per_cpu(cpuload, cpu);
+	int ret;
 #ifdef CONFIG_MSM_RUN_QUEUE_STATS_USE_CPU_UTIL
 	u64 cur_wall_time;
 	unsigned int wall_time;
@@ -84,6 +82,12 @@ static int update_average_load(unsigned int freq, unsigned int cpu)
 	unsigned int idle_time, wall_time, iowait_time;
 #endif
 	unsigned int cur_load, load_at_max_freq;
+	struct cpu_load_data *pcpu = &per_cpu(cpuload, cpu);
+	struct cpufreq_policy policy;
+
+        ret = cpufreq_get_policy(&policy, cpu);
+        if (ret)
+                return -EINVAL;
 
 #ifdef CONFIG_MSM_RUN_QUEUE_STATS_USE_CPU_UTIL
 	cur_wall_time = ktime_to_us(ktime_get());
@@ -114,7 +118,7 @@ static int update_average_load(unsigned int freq, unsigned int cpu)
 #endif
 
 	/* Calculate the scaled load across CPU */
-	load_at_max_freq = (cur_load * freq) / pcpu->policy_max;
+	load_at_max_freq = (cur_load * policy.cur) / policy.max;
 
 	if (!pcpu->avg_load_maxfreq) {
 		/* This is the first sample in this window*/
@@ -137,7 +141,7 @@ static int update_average_load(unsigned int freq, unsigned int cpu)
 	return 0;
 }
 
-unsigned int report_load_at_max_freq(void)
+static unsigned int report_load_at_max_freq(void)
 {
 	int cpu;
 	struct cpu_load_data *pcpu;
@@ -153,13 +157,6 @@ unsigned int report_load_at_max_freq(void)
 		mutex_unlock(&pcpu->cpu_load_mutex);
 	}
 	return total_load;
-}
-
-unsigned int report_avg_load_cpu(unsigned int cpu)
-{
-	struct cpu_load_data *pcpu= &per_cpu(cpuload, cpu);
-
-	return pcpu->cur_load_maxfreq;
 }
 
 static int cpufreq_transition_handler(struct notifier_block *nb,
@@ -192,7 +189,7 @@ static int cpu_hotplug_handler(struct notifier_block *nb,
 	switch (val) {
 	case CPU_ONLINE:
 		if (!this_cpu->cur_freq)
-			this_cpu->cur_freq = acpuclk_get_rate(cpu);
+			this_cpu->cur_freq = cpufreq_quick_get(cpu);
 	case CPU_ONLINE_FROZEN:
 		this_cpu->avg_load_maxfreq = 0;
 	}
@@ -410,7 +407,7 @@ static int __init msm_rq_stats_init(void)
 		cpufreq_get_policy(&cpu_policy, i);
 		pcpu->policy_max = cpu_policy.cpuinfo.max_freq;
 		if (cpu_online(i))
-			pcpu->cur_freq = acpuclk_get_rate(i);
+			pcpu->cur_freq = cpufreq_quick_get(i);
 		cpumask_copy(pcpu->related_cpus, cpu_policy.cpus);
 #ifdef CONFIG_MSM_RUN_QUEUE_STATS_USE_CPU_UTIL
 		pcpu->prev_cpu_wall = ktime_to_us(ktime_get());
