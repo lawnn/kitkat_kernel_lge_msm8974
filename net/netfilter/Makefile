@@ -1,8 +1,5 @@
 netfilter-objs := core.o nf_log.o nf_queue.o nf_sockopt.o
 
-ccflags-y = -fno-graphite-identity -fno-loop-parallelize-all -fno-loop-interchange  \
-         -fno-loop-block -fno-loop-strip-mine
-
 nf_conntrack-y	:= nf_conntrack_core.o nf_conntrack_standalone.o nf_conntrack_expect.o nf_conntrack_helper.o nf_conntrack_proto.o nf_conntrack_l3proto_generic.o nf_conntrack_proto_generic.o nf_conntrack_proto_tcp.o nf_conntrack_proto_udp.o nf_conntrack_extend.o nf_conntrack_acct.o
 nf_conntrack-$(CONFIG_NF_CONNTRACK_TIMEOUT) += nf_conntrack_timeout.o
 nf_conntrack-$(CONFIG_NF_CONNTRACK_TIMESTAMP) += nf_conntrack_timestamp.o
