@@ -84,6 +84,13 @@ config THERMAL_MONITOR
 	  entity starts running in the userspace. Monitors TSENS temperature
 	  and limits the max frequency of the cores.
 
+config INTELLI_THERMAL_STATS
+	bool "Enable intelli_thermal statistics"
+	depends on THERMAL_MONITOR
+	default n
+	help
+	  This enables intelli_thermal statistics
+
 config SPEAR_THERMAL
 	bool "SPEAr thermal sensor driver"
 	depends on THERMAL
