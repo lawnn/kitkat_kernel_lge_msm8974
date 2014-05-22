@@ -108,8 +108,7 @@ int ion_heap_map_user(struct ion_heap *heap, struct ion_buffer *buffer,
  *
  * Note that the `pages' array should be composed of all 4K pages.
  */
-int ion_heap_pages_zero(struct page **pages, int num_pages,
-				bool should_invalidate)
+int ion_heap_pages_zero(struct page **pages, int num_pages)
 {
 	int i, j, k, npages_to_vmap;
 	void *ptr = NULL;
@@ -142,21 +141,22 @@ int ion_heap_pages_zero(struct page **pages, int num_pages,
 		if (!ptr)
 			return -ENOMEM;
 
-		memset(ptr, 0, npages_to_vmap * PAGE_SIZE);
-		if (should_invalidate) {
-			/*
-			 * invalidate the cache to pick up the zeroing
-			 */
-			for (k = 0; k < npages_to_vmap; k++) {
-				void *p = kmap_atomic(pages[i + k]);
-				phys_addr_t phys = page_to_phys(
-							pages[i + k]);
+		/*
+		 * We have to invalidate the cache here because there
+		 * might be dirty lines to these physical pages (which
+		 * we don't care about) that could get written out at
+		 * any moment.
+		 */
+		for (k = 0; k < npages_to_vmap; k++) {
+			void *p = kmap_atomic(pages[i + k]);
+			phys_addr_t phys = page_to_phys(
+				pages[i + k]);
 
-				dmac_inv_range(p, p + PAGE_SIZE);
-				outer_inv_range(phys, phys + PAGE_SIZE);
-				kunmap_atomic(p);
-			}
+			dmac_inv_range(p, p + PAGE_SIZE);
+			outer_inv_range(phys, phys + PAGE_SIZE);
+			kunmap_atomic(p);
 		}
+		memset(ptr, 0, npages_to_vmap * PAGE_SIZE);
 		vunmap(ptr);
 	}
 
@@ -196,8 +196,7 @@ static void ion_heap_free_pages_mem(struct pages_mem *pages_mem)
 	pages_mem->free_fn(pages_mem->pages);
 }
 
-int ion_heap_high_order_page_zero(struct page *page,
-				int order, bool should_invalidate)
+int ion_heap_high_order_page_zero(struct page *page, int order)
 {
 	int i, ret;
 	struct pages_mem pages_mem;
@@ -210,8 +209,7 @@ int ion_heap_high_order_page_zero(struct page *page,
 	for (i = 0; i < (1 << order); ++i)
 		pages_mem.pages[i] = page + i;
 
-	ret = ion_heap_pages_zero(pages_mem.pages, npages,
-				should_invalidate);
+	ret = ion_heap_pages_zero(pages_mem.pages, npages);
 	ion_heap_free_pages_mem(&pages_mem);
 	return ret;
 }
@@ -240,46 +238,8 @@ int ion_heap_buffer_zero(struct ion_buffer *buffer)
 			pages_mem.pages[npages++] = page + j;
 	}
 
-	ret = ion_heap_pages_zero(pages_mem.pages, npages,
-				ion_buffer_cached(buffer));
+	ret = ion_heap_pages_zero(pages_mem.pages, npages);
 	ion_heap_free_pages_mem(&pages_mem);
-	return ret;
-}
-
-int ion_heap_buffer_zero_old(struct ion_buffer *buffer)
-{
-	struct sg_table *table = buffer->sg_table;
-	pgprot_t pgprot;
-	struct scatterlist *sg;
-	struct vm_struct *vm_struct;
-	int i, j, ret = 0;
-
-	if (buffer->flags & ION_FLAG_CACHED)
-		pgprot = PAGE_KERNEL;
-	else
-		pgprot = pgprot_writecombine(PAGE_KERNEL);
-
-	vm_struct = get_vm_area(PAGE_SIZE, VM_ALLOC);
-	if (!vm_struct)
-		return -ENOMEM;
-
-	for_each_sg(table->sgl, sg, table->nents, i) {
-		struct page *page = sg_page(sg);
-		unsigned long len = sg_dma_len(sg);
-
-		for (j = 0; j < len / PAGE_SIZE; j++) {
-			struct page *sub_page = page + j;
-			struct page **pages = &sub_page;
-			ret = map_vm_area(vm_struct, pgprot, &pages);
-			if (ret)
-				goto end;
-			memset(vm_struct->addr, 0, PAGE_SIZE);
-			unmap_kernel_range((unsigned long)vm_struct->addr,
-					   PAGE_SIZE);
-		}
-	}
-end:
-	free_vm_area(vm_struct);
 	return ret;
 }
 
@@ -298,10 +258,10 @@ void ion_heap_free_page(struct ion_buffer *buffer, struct page *page,
 
 void ion_heap_freelist_add(struct ion_heap *heap, struct ion_buffer * buffer)
 {
-	spin_lock(&heap->free_lock);
+	rt_mutex_lock(&heap->lock);
 	list_add(&buffer->list, &heap->free_list);
 	heap->free_list_size += buffer->size;
-	spin_unlock(&heap->free_lock);
+	rt_mutex_unlock(&heap->lock);
 	wake_up(&heap->waitqueue);
 }
 
@@ -309,9 +269,9 @@ size_t ion_heap_freelist_size(struct ion_heap *heap)
 {
 	size_t size;
 
-	spin_lock(&heap->free_lock);
+	rt_mutex_lock(&heap->lock);
 	size = heap->free_list_size;
-	spin_unlock(&heap->free_lock);
+	rt_mutex_unlock(&heap->lock);
 
 	return size;
 }
@@ -319,31 +279,27 @@ size_t ion_heap_freelist_size(struct ion_heap *heap)
 static size_t _ion_heap_freelist_drain(struct ion_heap *heap, size_t size,
 				bool skip_pools)
 {
-	struct ion_buffer *buffer;
+	struct ion_buffer *buffer, *tmp;
 	size_t total_drained = 0;
 
 	if (ion_heap_freelist_size(heap) == 0)
 		return 0;
 
-	spin_lock(&heap->free_lock);
+	rt_mutex_lock(&heap->lock);
 	if (size == 0)
 		size = heap->free_list_size;
 
-	while (!list_empty(&heap->free_list)) {
+	list_for_each_entry_safe(buffer, tmp, &heap->free_list, list) {
 		if (total_drained >= size)
 			break;
-		buffer = list_first_entry(&heap->free_list, struct ion_buffer,
-					  list);
 		list_del(&buffer->list);
 		heap->free_list_size -= buffer->size;
 		if (skip_pools)
 			buffer->flags |= ION_FLAG_FREED_FROM_SHRINKER;
 		total_drained += buffer->size;
-		spin_unlock(&heap->free_lock);
 		ion_buffer_destroy(buffer);
-		spin_lock(&heap->free_lock);
 	}
-	spin_unlock(&heap->free_lock);
+	rt_mutex_unlock(&heap->lock);
 
 	return total_drained;
 }
@@ -368,16 +324,16 @@ int ion_heap_deferred_free(void *data)
 		wait_event_freezable(heap->waitqueue,
 				     ion_heap_freelist_size(heap) > 0);
 
-		spin_lock(&heap->free_lock);
+		rt_mutex_lock(&heap->lock);
 		if (list_empty(&heap->free_list)) {
-			spin_unlock(&heap->free_lock);
+			rt_mutex_unlock(&heap->lock);
 			continue;
 		}
 		buffer = list_first_entry(&heap->free_list, struct ion_buffer,
 					  list);
 		list_del(&buffer->list);
 		heap->free_list_size -= buffer->size;
-		spin_unlock(&heap->free_lock);
+		rt_mutex_unlock(&heap->lock);
 		ion_buffer_destroy(buffer);
 	}
 
@@ -390,7 +346,7 @@ int ion_heap_init_deferred_free(struct ion_heap *heap)
 
 	INIT_LIST_HEAD(&heap->free_list);
 	heap->free_list_size = 0;
-	spin_lock_init(&heap->free_lock);
+	rt_mutex_init(&heap->lock);
 	init_waitqueue_head(&heap->waitqueue);
 	heap->task = kthread_run(ion_heap_deferred_free, heap,
 				 "%s", heap->name);
