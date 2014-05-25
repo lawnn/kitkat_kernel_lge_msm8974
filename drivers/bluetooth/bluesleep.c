@@ -296,7 +296,7 @@ static void bluesleep_sleep_work(struct work_struct *work)
 		}
 /*                                                      */
 #ifndef CONFIG_LGE_BLUESLEEP
-		if (msm_hs_tx_empty(bsi->uport)) {
+		if (1==1 /*msm_hs_tx_empty(bsi->uport)*/) {
 #endif /*                    */			
 /*                                                      */
 			BT_DBG("going to sleep...");
