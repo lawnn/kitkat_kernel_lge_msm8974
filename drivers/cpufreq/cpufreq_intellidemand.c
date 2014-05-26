@@ -41,7 +41,7 @@
  * It helps to keep variable names smaller, simpler
  */
 
-#define DEF_SAMPLING_RATE                        (50000)
+#define DEF_SAMPLING_RATE                        (60000)
 #define DEF_FREQUENCY_DOWN_DIFFERENTIAL                (10)
 #define DEF_FREQUENCY_UP_THRESHOLD                (60)
 #define DEF_SAMPLING_DOWN_FACTOR                (1)
@@ -82,7 +82,7 @@ static unsigned long stored_sampling_rate;
 #endif
 
 #if defined(SMART_UP_PLUS)
-static unsigned int SUP_THRESHOLD_STEPS[SUP_MAX_STEP] = {75, 85, 90};
+static unsigned int SUP_THRESHOLD_STEPS[SUP_MAX_STEP] = {75, 80, 85};
 static unsigned int SUP_FREQ_STEPS[SUP_MAX_STEP] = {4, 3, 2};
 //static unsigned int min_range = 108000;
 typedef struct{
@@ -98,7 +98,7 @@ static freq_table_idx pre_freq_idx[SUP_CORE_NUM] = {};
 
 #define SUP_SLOW_UP_FREQUENCY                 (1728000)
 #define SUP_HIGH_SLOW_UP_FREQUENCY         (2265600)
-#define SUP_SLOW_UP_LOAD                 (80)
+#define SUP_SLOW_UP_LOAD                 (75)
 
 typedef struct {
         unsigned int hist_max_load[SUP_SLOW_UP_DUR];
@@ -253,8 +253,8 @@ static struct dbs_tuners {
         .up_threshold_any_cpu_load = DEF_FREQUENCY_UP_THRESHOLD,
         .ignore_nice = 0,
         .powersave_bias = 0,
-        .sync_freq = 0,
-        .optimal_freq = 0,
+        .sync_freq = 1574400,
+        .optimal_freq = 1574400,
         //20130711 smart_up 
         .smart_up = SMART_UP_PLUS,
         .smart_slow_up_load = SUP_SLOW_UP_LOAD,
@@ -1379,7 +1379,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
         }
 
         /* calculate the scaled load across CPU */
-        load_at_max_freq = (cur_load * policy->cur)/policy->cpuinfo.max_freq;
+        load_at_max_freq = (cur_load * policy->cur)/policy->max;
 
         cpufreq_notify_utilization(policy, max_load);
 
