@@ -32,10 +32,7 @@
 #include <linux/platform_device.h>
 #include <mach/socinfo.h>
 #include <mach/cpufreq.h>
-<<<<<<< HEAD
 #include <mach/msm_bus.h>
-=======
->>>>>>> b99892b... devfreq: Add MSM CPUfreq governor
 
 #include "acpuclock.h"
 
@@ -76,7 +73,11 @@ struct cpufreq_suspend_t {
 
 static DEFINE_PER_CPU(struct cpufreq_suspend_t, cpufreq_suspend);
 
-<<<<<<< HEAD
+unsigned long msm_cpufreq_get_bw(void)
+{
+	return mem_bw[max_freq_index];
+}
+
 struct cpu_freq {
 	uint32_t max;
 	uint32_t min;
@@ -86,11 +87,6 @@ struct cpu_freq {
 };
 
 static DEFINE_PER_CPU(struct cpu_freq, cpu_freq_info);
-
-unsigned long msm_cpufreq_get_bw(void)
-{
-	return mem_bw[max_freq_index];
-}
 
 static int speed_bin, pvs_bin;
 void set_speed_pvs_bin(int speed, int pvs)
