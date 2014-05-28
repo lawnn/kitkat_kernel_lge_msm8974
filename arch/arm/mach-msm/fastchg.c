@@ -33,9 +33,13 @@
  * version 1.1 Added 1800ma limit to table by Dorimanx
  * version 1.2 Added Fake AC interface by Mankindtw@xda and Dorimanx
  * version 1.3 Misc fixes to force AC and allowed real 1800mA max.
+ * version 1.4 Added usage of custom mA value for max charging power,
+ * Now we can use Intelli Thermal and get full power charge, this was controlled by
+ * default ROM thermal engine, not any more, code will check if battery if not above 50c
+ * and allow max charge!
  */
 
-#define FAST_CHARGE_VERSION	"Version 1.3"
+#define FAST_CHARGE_VERSION	"Version 1.5"
 
 int force_fast_charge;
 int fast_charge_level;
@@ -218,4 +222,5 @@ module_exit(force_fast_charge_exit);
 MODULE_LICENSE("GPL v2");
 MODULE_AUTHOR("Jean-Pierre Rasquin <yank555.lu@gmail.com>");
 MODULE_AUTHOR("Paul Reioux <reioux@gmail.com>");
+MODULE_AUTHOR("Yuri Sh. <yuri@bynet.co.il>");
 MODULE_DESCRIPTION("Fast Charge Hack for Android");

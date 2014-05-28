@@ -2282,6 +2282,12 @@ static void smb349_irq_worker(struct work_struct *work)
 #if defined(CONFIG_BQ51053B_CHARGER) && defined(CONFIG_WIRELESS_CHARGER)
 	int wlc_present =0;
 #endif
+
+#ifdef CONFIG_FORCE_FAST_CHARGE
+	int batt_temp_check;
+	int new_thermal_mitigation;
+#endif
+
 	struct smb349_struct *smb349_chg =
 		container_of(work, struct smb349_struct, irq_work.work);
 #if SMB349_BOOSTBACK_WORKAROUND
@@ -2345,6 +2351,7 @@ static void smb349_irq_worker(struct work_struct *work)
 					schedule_delayed_work(&smb349_chg->polling_work,
 							msecs_to_jiffies(500));
 				}
+				pr_info("smb349_irq_worker host mode");
 				return;
 			}
 		} else if (irqstat[IRQSTAT_F] & OTG_BATT_UV_MASK) {
@@ -2354,8 +2361,10 @@ static void smb349_irq_worker(struct work_struct *work)
 			pr_err("smb349_irq_worker triggered: %d host_mode: %d\n",
 					usb_present, host_mode);
 
-			if (host_mode)
+			if (host_mode) {
+				pr_info("smb349_irq_worker host mode");
 				return;
+			}
 		}
 	}
 
@@ -2366,7 +2375,62 @@ static void smb349_irq_worker(struct work_struct *work)
 		smb349_chg_timeout(0);
 	}
 
-	if ( irqstat[IRQSTAT_D] & BIT(5) ) {
+#ifdef CONFIG_FORCE_FAST_CHARGE
+
+	mutex_lock(&smb349_chg->lock);
+
+	if (smb349_chg->btm_state == BTM_HEALTH_OVERHEAT)
+		batt_temp_check = 1;
+	else
+		batt_temp_check = 0;
+
+	if (force_fast_charge == 2) {
+		switch (fast_charge_level) {
+			case FAST_CHARGE_500:
+				new_thermal_mitigation = 500;
+				break;
+			case FAST_CHARGE_900:
+				new_thermal_mitigation = 900;
+				break;
+			case FAST_CHARGE_1200:
+				new_thermal_mitigation = 1200;
+				break;
+			case FAST_CHARGE_1500:
+				new_thermal_mitigation = 1500;
+				break;
+			case FAST_CHARGE_1800:
+				new_thermal_mitigation = 1800;
+				break;
+			case FAST_CHARGE_2000:
+				new_thermal_mitigation = 2000;
+				break;
+			default:
+				break;
+		}
+	} else {
+		new_thermal_mitigation = 1600;
+	}
+
+	/*
+	 * if batt_temp_check = 1 then battery is 55c or more!
+	 * stop fast charge and set max 300ma
+	 */
+	if ((batt_temp_check == 1) && (smb349_thermal_mitigation != 300)) {
+		smb349_thermal_mitigation = 300;
+		the_smb349_chg->chg_current_te = smb349_thermal_mitigation;
+		cancel_delayed_work_sync(&the_smb349_chg->battemp_work);
+		schedule_delayed_work(&the_smb349_chg->battemp_work, HZ*1);
+	} else if (smb349_thermal_mitigation != new_thermal_mitigation) {
+		smb349_thermal_mitigation = new_thermal_mitigation;
+		the_smb349_chg->chg_current_te = smb349_thermal_mitigation;
+		cancel_delayed_work_sync(&the_smb349_chg->battemp_work);
+		schedule_delayed_work(&the_smb349_chg->battemp_work, HZ*1);
+	}
+
+	mutex_unlock(&smb349_chg->lock);
+#endif
+
+	if (irqstat[IRQSTAT_D] & BIT(5)) {
 		ret = smb349_read_reg(smb349_chg->client, STATUS_E_REG, &val);
 		if (ret < 0)
 			pr_err("Failed to AICL result rc=%d\n", ret);
@@ -2381,7 +2445,7 @@ static void smb349_irq_worker(struct work_struct *work)
 #endif
 	}
 
-	if ( !(irqstat[IRQSTAT_E] & 0x01) ) {
+	if (!(irqstat[IRQSTAT_E] & 0x01)) {
 #if SMB349_BOOSTBACK_WORKAROUND
 		smb349_pr_info("[BH] DC is present. DC_IN volt:%d\n", smb349_get_usbin_adc());
 #else
