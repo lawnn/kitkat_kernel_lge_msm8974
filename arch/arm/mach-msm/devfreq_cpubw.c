@@ -112,7 +112,6 @@ static struct devfreq_governor_data gov_data[] = {
 	{ .name = "performance" },
 	{ .name = "powersave" },
 	{ .name = "userspace" },
-	{ .name = "msm_cpufreq" },
 };
 struct devfreq_dev_profile cpubw_profile = {
 	.polling_ms = 50,
@@ -186,7 +185,7 @@ static int __init cpubw_probe(struct platform_device *pdev)
 		return -ENODEV;
 	}
 
-	df = devfreq_add_device(dev, &cpubw_profile, "msm_cpufreq", NULL);
+	df = devfreq_add_device(dev, &cpubw_profile, "powersave", NULL);
 	if (IS_ERR(df)) {
 		msm_bus_scale_unregister_client(bus_client);
 		return PTR_ERR(df);
