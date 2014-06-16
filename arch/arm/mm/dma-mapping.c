@@ -659,9 +659,7 @@ static void *__alloc_from_contiguous(struct device *dev, size_t size,
 static void __free_from_contiguous(struct device *dev, struct page *page,
 				   void *cpu_addr, size_t size)
 {
-	if (!PageHighMem(page))
-		__dma_remap(page, size, PAGE_KERNEL, false);
-	else
+	if (PageHighMem(page))
 		__dma_free_remap(cpu_addr, size, true);
 	else
 		__dma_remap(page, size, pgprot_kernel, false);
