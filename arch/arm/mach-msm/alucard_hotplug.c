@@ -336,9 +336,8 @@ static void __ref alucard_hotplug_suspend(struct power_suspend *handler)
 static void __ref alucard_hotplug_early_suspend(struct early_suspend *handler)
 #endif
 {
-	if (hotplug_tuners_ins.hotplug_enable > 0) {
+	if (hotplug_tuners_ins.hotplug_enable > 0)
 		suspended = true;
-	}
 }
 
 #ifdef CONFIG_POWERSUSPEND
