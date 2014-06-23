@@ -799,12 +799,7 @@ int slim_assign_laddr(struct slim_controller *ctrl, const u8 *e_addr,
 	struct slim_device *sbdev;
 	struct list_head *pos, *next;
 #ifdef CONFIG_SND_SOC_ES325_SLIM
-	/*              
-                                                                    
-                                
- */
 	struct sbi_boardinfo *bi;
-	struct list_head *pos;
 #endif /* CONFIG_SND_SOC_ES325_SLIM */
 
 	mutex_lock(&ctrl->m_ctrl);
