@@ -2738,7 +2738,7 @@ out:
 static long do_rmdir(int dfd, const char __user *pathname)
 {
 	int error = 0;
-	char * name = NULL;
+	char *name = NULL;
 	struct dentry *dentry;
 	struct nameidata nd;
 
@@ -2926,7 +2926,7 @@ SYSCALL_DEFINE3(symlinkat, const char __user *, oldname,
 		int, newdfd, const char __user *, newname)
 {
 	int error;
-	char *from;
+	char *from = NULL;
 	struct dentry *dentry;
 	struct path path;
 

@@ -1,5 +1,9 @@
 CFLAGS_scm.o :=$(call as-instr,.arch_extension sec,-DREQUIRES_SEC=1)
 
+# GCC 4.8+ fix.
+CFLAGS_cpubw-krait.o += -w
+CFLAGS_alucard_hotplug.o += -w
+
 obj-y += io.o dma.o memory.o
 ifndef CONFIG_ARM_ARCH_TIMER
 obj-y += timer.o
@@ -448,4 +452,4 @@ obj-$(CONFIG_HAS_MACH_MEMUTILS) += memutils/
 obj-$(CONFIG_MSM_CPUFREQ_LIMITER) += cpufreq_limit.o
 obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
 obj-$(CONFIG_ALUCARD_HOTPLUG) += alucard_hotplug.o
-obj-$(CONFIG_INTELLI_PLUG) += intelli_plug.o
+obj-$(CONFIG_INTELLI_HOTPLUG) += intelli_plug.o

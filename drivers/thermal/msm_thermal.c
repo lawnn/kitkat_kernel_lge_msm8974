@@ -37,7 +37,6 @@
 #include <linux/thermal.h>
 #include <mach/rpm-regulator.h>
 #include <mach/rpm-regulator-smd.h>
-#include <mach/cpufreq.h>
 #include <linux/regulator/consumer.h>
 
 #define MAX_RAILS 5
@@ -67,12 +66,12 @@ static struct msm_thermal_data msm_thermal_info_local = {
 	.temp_hysteresis_degC = 5,
 	.freq_step = 2,
 	.freq_control_mask = 0xf,
-	.core_limit_temp_degC = 75,
+	.core_limit_temp_degC = 80,
 	.core_temp_hysteresis_degC = 5,
 	.core_control_mask = 0xe,
 };
 static uint32_t thermal_limited_max_freq = UINT_MAX;
-static uint32_t thermal_limited_min_freq;
+static uint32_t thermal_limited_min_freq = 300000;
 static struct delayed_work check_temp_work;
 static bool core_control_enabled;
 static unsigned int debug_mode = 0;
@@ -594,7 +593,6 @@ fail:
 	return ret;
 }
 
-#if 0
 /* 1:enable, 0:disable */
 static int vdd_restriction_apply_all(int en)
 {
@@ -636,7 +634,6 @@ static int vdd_restriction_apply_all(int en)
 		return -EFAULT;
 	return ret;
 }
-#endif
 
 static int msm_thermal_get_freq_table(void)
 {
@@ -690,6 +687,10 @@ static void __ref do_core_control(long temp)
 	int ret = 0;
 
 	if (!core_control_enabled)
+		return;
+
+	if (msm_thermal_info_local.limit_temp_degC <
+			msm_thermal_info_local.core_limit_temp_degC)
 		return;
 
 	/**
@@ -751,7 +752,6 @@ static void do_core_control(long temp)
 }
 #endif
 
-#if 0
 static int do_vdd_restriction(void)
 {
 	struct tsens_device tsens_dev;
@@ -800,7 +800,6 @@ exit:
 	mutex_unlock(&vdd_rstr_mutex);
 	return ret;
 }
-#endif
 
 static int do_psm(void)
 {
@@ -859,9 +858,9 @@ static void __ref do_freq_control(long temp)
 		msm_thermal_info_local.limit_temp_degC = 80;
 
 	if (debug_mode == 1)
-		printk(KERN_ERR "pre-check do_freq_control temp[%u], \
-				limit_idx[%u], limit_idx_low[%u], \
-				limited_idx_high[%u]\n",
+		printk(KERN_ERR "pre-check do_freq_control temp[%ld], \
+				limit_idx[%d], limit_idx_low[%d], \
+				limited_idx_high[%d]\n",
 				temp, limit_idx, limit_idx_low,
 				limit_idx_high);
 
@@ -892,9 +891,9 @@ static void __ref do_freq_control(long temp)
 	}
 
 	if (debug_mode == 1)
-		printk(KERN_ERR "do_freq_control temp[%u], \
-				limit_idx[%u], max_freq[%u], \
-				thermal_limited_max_freq[%u]\n",
+		printk(KERN_ERR "do_freq_control temp[%ld], \
+				limit_idx[%d], max_freq[%d], \
+				thermal_limited_max_freq[%d]\n",
 				temp, limit_idx, max_freq,
 				thermal_limited_max_freq);
 
@@ -917,13 +916,11 @@ static void __ref do_freq_control(long temp)
 
 	thermal_limited_max_freq = max_freq;
 	/* Update new limits */
-	get_online_cpus();
 	for_each_possible_cpu(cpu) {
 		if (!(msm_thermal_info_local.freq_control_mask & BIT(cpu)))
 			continue;
 		update_cpu_max_freq(cpu, max_freq, temp);
 	}
-	put_online_cpus();
 }
 
 static void __ref check_temp(struct work_struct *work)
@@ -960,9 +957,7 @@ static void __ref check_temp(struct work_struct *work)
 	}
 
 	do_core_control(temp);
-#if 0
 	do_vdd_restriction();
-#endif
 	do_psm();
 	do_freq_control(temp);
 
@@ -1068,7 +1063,7 @@ static int __ref set_enabled(const char *val, const struct kernel_param *kp)
 		if (!enabled) {
 			enabled = 1;
 			schedule_delayed_work(&check_temp_work,
-					msecs_to_jiffies(10000));
+					msecs_to_jiffies(5000));
 			pr_info("msm_thermal: rescheduling...\n");
 		} else
 			pr_info("msm_thermal: already running...\n");

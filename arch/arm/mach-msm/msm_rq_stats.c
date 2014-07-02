@@ -31,6 +31,7 @@
 #include <linux/tick.h>
 #include <asm/smp_plat.h>
 #include <linux/suspend.h>
+#include "acpuclock.h"
 
 #define MAX_LONG_SIZE 24
 #define DEFAULT_RQ_POLL_JIFFIES 1
@@ -57,11 +58,13 @@ struct cpu_load_data {
 	struct mutex cpu_load_mutex;
 };
 
-static unsigned int lock_hotplug_disabled = 1;
+static unsigned int lock_hotplug_disabled;
 
 static DEFINE_PER_CPU(struct cpu_load_data, cpuload);
 
-static bool io_is_busy;
+#ifndef CONFIG_MSM_RUN_QUEUE_STATS_USE_CPU_UTIL
+static bool io_is_busy = false;
+#endif
 
 static int update_average_load(unsigned int freq, unsigned int cpu)
 {
@@ -180,7 +183,7 @@ static int cpu_hotplug_handler(struct notifier_block *nb,
 	switch (val) {
 	case CPU_ONLINE:
 		if (!this_cpu->cur_freq)
-			this_cpu->cur_freq = acpuclk_get_rate(cpu);
+			this_cpu->cur_freq = cpufreq_quick_get(cpu);
 	case CPU_ONLINE_FROZEN:
 		this_cpu->avg_load_maxfreq = 0;
 	}
@@ -428,7 +431,7 @@ static int __init msm_rq_stats_init(void)
 		cpufreq_get_policy(&cpu_policy, i);
 		pcpu->policy_max = cpu_policy.max;
 		if (cpu_online(i))
-			pcpu->cur_freq = acpuclk_get_rate(i);
+			pcpu->cur_freq = cpu_policy.cur;
 #ifdef CONFIG_MSM_RUN_QUEUE_STATS_USE_CPU_UTIL
 		pcpu->prev_cpu_wall = ktime_to_us(ktime_get());
 #endif
