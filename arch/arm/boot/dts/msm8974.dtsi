@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -1096,10 +1096,6 @@
 		compatible = "qcom,msm-voice-svc";
 	};
 
-	qcom,msm-voice-svc {
-		compatible = "qcom,msm-voice-svc";
-	};
-
 	qcom,msm-dai-q6 {
 		compatible = "qcom,msm-dai-q6";
 		qcom,msm-dai-q6-sb-0-rx {
@@ -1624,11 +1620,13 @@
 			qcom,min-level = <1>; /* No Request */
 		};
 
+/* No such regulator exist.
 		qcom,vdd-apps-rstr{
 			qcom,vdd-rstr-reg = "vdd-apps";
 			qcom,levels = <1728000 1958400 2265600>;
 			qcom,freq-req;
 		};
+*/
 	};
 
 	qcom,bam_dmux@fc834000 {
@@ -1837,6 +1835,13 @@
 			qcom,smdtty-port-name = "LOOPBACK";
 			qcom,smdtty-dev-name = "LOOPBACK_TTY";
 		};
+	};
+
+	qcom,avtimer {
+		compatible = "qcom,avtimer";
+		reg = <0xfe053008 0x4>,
+			<0xfe05300c 0x4>;
+		reg-names = "avtimer_lsb_addr", "avtimer_msb_addr";
 	};
 };
 
