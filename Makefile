@@ -1,6 +1,6 @@
 VERSION = 3
 PATCHLEVEL = 4
-SUBLEVEL = 97
+SUBLEVEL = 98
 EXTRAVERSION =
 NAME = Saber-toothed Squirrel
 
@@ -248,8 +248,8 @@ CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
 
 HOSTCC       = ccache gcc
 HOSTCXX      = ccache g++
-HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 -fno-tree-vectorize -fomit-frame-pointer
-HOSTCXXFLAGS = -O3 -fno-tree-vectorize
+HOSTCFLAGS   = -Wall -Wmissing-prototypes -Wstrict-prototypes -O3 -ftree-vectorize -fomit-frame-pointer
+HOSTCXXFLAGS = -O3 -ftree-vectorize
 
 # Decide whether to build built-in, modular, or both.
 # Normally, just do built-in.
@@ -356,8 +356,10 @@ CHECKFLAGS     := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
 
 OPTIMIZATION_FLAGS = -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 \
                      -ffast-math -fsingle-precision-constant \
-                     -fgcse-lm -fgcse-sm -fsched-spec-load -fforce-addr \
-                     -mvectorize-with-neon-quad -funroll-loops -munaligned-access
+                     -fgcse-lm -fgcse-las -fgcse-sm -fsched-spec-load -fforce-addr \
+                     -mvectorize-with-neon-quad -funroll-loops -munaligned-access \
+                     -ftree-loop-im -ftree-loop-ivcanon fgcse-after-reload \
+		     -fivopts -ftree-vectorize -fmodulo-sched
 CFLAGS_MODULE   = $(OPTIMIZATION_FLAGS) -DMODULE -fno-pic
 AFLAGS_MODULE   = $(OPTIMIZATION_FLAGS) -DMODULE
 LDFLAGS_MODULE  =
@@ -382,7 +384,7 @@ KBUILD_CFLAGS   := -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
 		   -Wno-maybe-uninitialized \
 		   -Wno-sizeof-pointer-memaccess \
 		   -fno-delete-null-pointer-checks \
-                   -funswitch-loops -fpredictive-commoning -fgcse-after-reload \
+                   -funswitch-loops -fpredictive-commoning \
 		   $(OPTIMIZATION_FLAGS)
 KBUILD_AFLAGS_KERNEL :=
 KBUILD_CFLAGS_KERNEL :=
@@ -580,10 +582,10 @@ ifdef CONFIG_CC_OPTIMIZE_DEFAULT
 KBUILD_CFLAGS += -O2
 endif
 ifdef CONFIG_CC_OPTIMIZE_MORE
-KBUILD_CFLAGS += -O3 -fmodulo-sched -fmodulo-sched-allow-regmoves -fno-tree-vectorize -fno-inline-functions
+KBUILD_CFLAGS += -O3 -fmodulo-sched -fmodulo-sched-allow-regmoves -ftree-vectorize -fno-inline-functions
 endif
 ifdef CONFIG_CC_OPTIMIZE_FAST
-KBUILD_CFLAGS += -Ofast -fmodulo-sched -fmodulo-sched-allow-regmoves -fno-tree-vectorize -fno-inline-functions
+KBUILD_CFLAGS += -Ofast -fmodulo-sched -fmodulo-sched-allow-regmoves -ftree-vectorize -fno-inline-functions
 endif
 
 include $(srctree)/arch/$(SRCARCH)/Makefile
