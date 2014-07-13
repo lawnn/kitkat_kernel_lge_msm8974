@@ -358,7 +358,7 @@ OPTIMIZATION_FLAGS = -mcpu=cortex-a15 -mtune=cortex-a15 -mfpu=neon-vfpv4 \
                      -ffast-math -fsingle-precision-constant \
                      -fgcse-lm -fgcse-las -fgcse-sm -fsched-spec-load -fforce-addr \
                      -mvectorize-with-neon-quad -funroll-loops -munaligned-access \
-                     -ftree-loop-im -ftree-loop-ivcanon fgcse-after-reload \
+                     -ftree-loop-im -ftree-loop-ivcanon -fgcse-after-reload \
 		     -fivopts -ftree-vectorize -fmodulo-sched
 CFLAGS_MODULE   = $(OPTIMIZATION_FLAGS) -DMODULE -fno-pic
 AFLAGS_MODULE   = $(OPTIMIZATION_FLAGS) -DMODULE
