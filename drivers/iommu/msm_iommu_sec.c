@@ -54,6 +54,12 @@
 
 static struct iommu_access_ops *iommu_access_ops;
 
+static const struct of_device_id msm_smmu_list[] = {
+	{ .compatible = "qcom,msm-smmu-v1", },
+	{ .compatible = "qcom,msm-smmu-v2", },
+	{ }
+};
+
 struct msm_scm_paddr_list {
 	unsigned int list;
 	unsigned int list_size;
@@ -283,8 +289,9 @@ static int msm_iommu_sec_ptbl_init(void)
 	unsigned int spare;
 	int ret, ptbl_ret = 0;
 
-	for_each_compatible_node(np, NULL, "qcom,msm-smmu-v1")
-		if (of_find_property(np, "qcom,iommu-secure-id", NULL))
+	for_each_matching_node(np, msm_smmu_list)
+		if (of_find_property(np, "qcom,iommu-secure-id", NULL) &&
+				of_device_is_available(np))
 			break;
 
 	if (!np)
@@ -566,6 +573,7 @@ static int msm_iommu_attach_dev(struct iommu_domain *domain, struct device *dev)
 
 		ret = msm_iommu_sec_program_iommu(iommu_drvdata->sec_id);
 
+		SET_MICRO_MMU_CTRL_RESERVED(iommu_drvdata->base, 0x3);
 		/* bfb settings are always programmed by HLOS */
 		program_iommu_bfb_settings(iommu_drvdata->base,
 					   iommu_drvdata->bfb_settings);

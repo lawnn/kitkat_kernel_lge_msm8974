@@ -6447,9 +6447,10 @@ dhd_dev_pno_stop_for_ssid(struct net_device *dev)
 
 	return (dhd_pno_stop_for_ssid(&dhd->pub));
 }
+
 /* Linux wrapper to call common dhd_pno_set_for_ssid */
 int
-dhd_dev_pno_set_for_ssid(struct net_device *dev, wlc_ssid_t* ssids_local, int nssid,
+dhd_dev_pno_set_for_ssid(struct net_device *dev, wlc_ssid_ext_t* ssids_local, int nssid,
 	uint16  scan_fr, int pno_repeat, int pno_freq_expo_max, uint16 *channel_list, int nchan)
 {
 	dhd_info_t *dhd = *(dhd_info_t **)netdev_priv(dev);
@@ -6525,6 +6526,7 @@ static void dhd_hang_process(struct work_struct *work)
 		wl_cfg80211_hang(dev, WLAN_REASON_UNSPECIFIED);
 #endif
 	}
+	dhd->pub.hang_was_sent = 0;
 }
 
 int dhd_os_send_hang_message(dhd_pub_t *dhdp)

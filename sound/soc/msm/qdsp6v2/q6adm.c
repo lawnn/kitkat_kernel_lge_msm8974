@@ -34,6 +34,7 @@
 /* 2 is to account for module & param ID in payload */
 #define ADM_GET_PARAMETER_LENGTH  (4096 - APR_HDR_SIZE - 2 * sizeof(uint32_t))
 
+#define ULL_SUPPORTED_BITS_PER_SAMPLE 16
 #define ULL_SUPPORTED_SAMPLE_RATE 48000
 #define ULL_MAX_SUPPORTED_CHANNEL 2
 enum {
@@ -478,6 +479,12 @@ static int32_t adm_callback(struct apr_client_data *data, void *priv)
 {
 	uint32_t *payload;
 	int i, index;
+
+	if (data == NULL) {
+		pr_err("%s: data paramter is null\n", __func__);
+		return -EINVAL;
+	}
+
 	payload = data->payload;
 
 	if (data->opcode == RESET_EVENTS) {
@@ -1170,6 +1177,7 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology,
 #ifdef CONFIG_HIFI_SOUND
 			bits_per_sample = 16;
 #endif
+			open.bit_width = ULL_SUPPORTED_BITS_PER_SAMPLE;
 			if(channel_mode > ULL_MAX_SUPPORTED_CHANNEL)
 				channel_mode = ULL_MAX_SUPPORTED_CHANNEL;
 		} else if (perf_mode == LOW_LATENCY_PCM_MODE) {
@@ -1597,6 +1605,16 @@ int adm_get_lowlatency_copp_id(int port_index)
 	}
 
 	return atomic_read(&this_adm.copp_low_latency_id[port_index]);
+}
+#else
+int adm_get_copp_id(int port_index)
+{
+	return -EINVAL;
+}
+
+int adm_get_lowlatency_copp_id(int port_index)
+{
+	return -EINVAL;
 }
 #endif /* #ifdef CONFIG_RTAC */
 
