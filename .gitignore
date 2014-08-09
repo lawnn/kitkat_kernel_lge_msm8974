@@ -32,10 +32,7 @@ modules.builtin
 *.lzo
 *.patch
 *.gcno
-*.rej
-*.orig
-patch-3.*
-
+*.log
 #
 # Top-level generic files
 #
@@ -47,6 +44,7 @@ patch-3.*
 /System.map
 /Module.markers
 /Module.symvers
+/out/
 
 #
 # Debian directory (make deb-pkg)
